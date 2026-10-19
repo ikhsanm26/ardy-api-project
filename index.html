@@ -40,14 +40,19 @@ header p { line-height: 1.6; }
   line-height: 1.7;
   overflow-wrap: anywhere;
 }
-.dog {
+.field-image {
   display: block;
   width: 100%;
-  max-width: 400px;
-  max-height: 300px;
+  max-width: 500px;
+  max-height: 340px;
   object-fit: cover;
   margin: 12px auto;
   border-radius: 12px;
+}
+.image-credit {
+  font-size: 12px;
+  color: #64748b;
+  overflow-wrap: anywhere;
 }
 button {
   padding: 11px 16px;
@@ -56,7 +61,9 @@ button {
   border: 0;
   border-radius: 8px;
   cursor: pointer;
+  margin-top: 8px;
 }
+button:disabled { opacity: 0.6; cursor: wait; }
 footer {
   text-align: center;
   color: #64748b;
@@ -86,10 +93,11 @@ footer {
 </section>
 
 <section class="card">
-  <h2>🐶 Galeri Anjing</h2>
-  <p class="source">API 3 — Dog CEO</p>
-  <div id="dogs" class="result">Memuat gambar...</div>
-  <button id="refresh">Tampilkan gambar lain</button>
+  <h2>📋 Galeri Pendataan Lapangan</h2>
+  <p class="source">API 3 — Wikimedia Commons</p>
+  <p>Ilustrasi kegiatan survei, sensus, dan pendataan masyarakat.</p>
+  <div id="field-gallery" class="result">Sedang mencari gambar...</div>
+  <button id="refresh-gallery">Cari gambar lain</button>
 </section>
 
 <footer>Proyek pembelajaran API eksternal · Ardy Journal</footer>
@@ -128,25 +136,91 @@ async function loadPosts() {
   }
 }
 
-async function loadDog() {
-  const el = document.getElementById("dogs");
-  el.textContent = "Memuat gambar...";
+async function loadFieldGallery() {
+  const el = document.getElementById("field-gallery");
+  const btn = document.getElementById("refresh-gallery");
+  btn.disabled = true;
+  el.textContent = "Sedang mencari gambar pendataan lapangan...";
+
   try {
-    const r = await fetch("https://dog.ceo/api/breeds/image/random");
+    const searchTerms = [
+      "census field survey",
+      "population census enumerator",
+      "household survey fieldwork",
+      "statistical survey interviewer"
+    ];
+    const term = searchTerms[Math.floor(Math.random() * searchTerms.length)];
+
+    const apiUrl = "https://commons.wikimedia.org/w/api.php" +
+      "?action=query&generator=search" +
+      "&gsrsearch=" + encodeURIComponent(term + " filetype:bitmap") +
+      "&gsrnamespace=6&gsrlimit=10" +
+      "&prop=imageinfo&iiprop=url%7Cextmetadata" +
+      "&iiurlwidth=700&format=json&origin=*";
+
+    const r = await fetch(apiUrl);
     if (!r.ok) throw new Error();
-    const d = await r.json();
-    if (d.status !== "success") throw new Error();
-    el.innerHTML = '<img class="dog" src="' + d.message +
-      '" alt="Gambar anjing dari Dog CEO API">';
+    const data = await r.json();
+    const pages = Object.values(data.query?.pages || {});
+    const images = pages.filter(p =>
+      p.imageinfo && p.imageinfo[0] &&
+      p.imageinfo[0].thumburl &&
+      /\.(jpg|jpeg|png)$/i.test(p.imageinfo[0].thumburl.split("?")[0])
+    );
+
+    if (!images.length) throw new Error();
+
+    const chosen = images[Math.floor(Math.random() * images.length)];
+    const info = chosen.imageinfo[0];
+    const metadata = info.extmetadata || {};
+    const artist = metadata.Artist?.value || "Wikimedia Commons";
+    const license = metadata.LicenseShortName?.value || "Periksa lisensi sumber";
+    const clean = value => {
+      const div = document.createElement("div");
+      div.innerHTML = value;
+      return div.textContent || div.innerText || "";
+    };
+
+    el.innerHTML = "";
+
+    const img = document.createElement("img");
+    img.className = "field-image";
+    img.src = info.thumburl;
+    img.alt = clean(chosen.title.replace(/^File:/, ""));
+    img.loading = "lazy";
+    el.appendChild(img);
+
+    const caption = document.createElement("p");
+    caption.textContent = clean(chosen.title.replace(/^File:/, ""));
+    el.appendChild(caption);
+
+    const credit = document.createElement("p");
+    credit.className = "image-credit";
+    credit.textContent = "Sumber: Wikimedia Commons · Kontributor: " +
+      clean(artist) + " · Lisensi: " + clean(license);
+    el.appendChild(credit);
+
+    const link = document.createElement("a");
+    link.href = info.descriptionurl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "Lihat sumber gambar";
+    el.appendChild(link);
+
   } catch {
-    el.textContent = "Gambar gagal dimuat. Coba lagi.";
+    el.textContent =
+      "Gambar tidak berhasil dimuat. Coba tekan Cari gambar lain.";
+  } finally {
+    btn.disabled = false;
   }
 }
 
-document.getElementById("refresh").addEventListener("click", loadDog);
+document.getElementById("refresh-gallery")
+  .addEventListener("click", loadFieldGallery);
+
 loadWeather();
 loadPosts();
-loadDog();
+loadFieldGallery();
 </script>
 </body>
 </html>
