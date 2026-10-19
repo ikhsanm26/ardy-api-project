@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ardy Journal - API Project</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 24px;
+  background: #f2f5f9;
+  color: #203047;
+  font-family: Arial, sans-serif;
+}
+main { max-width: 760px; margin: auto; }
+header {
+  padding: 28px;
+  border-radius: 16px;
+  color: white;
+  background: linear-gradient(135deg,#203b65,#5887b6);
+  margin-bottom: 20px;
+}
+header p { line-height: 1.6; }
+.card {
+  background: white;
+  border: 1px solid #e1e7ef;
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 15px #2030470d;
+}
+.card h2 { margin-top: 0; }
+.source { color: #64748b; font-size: 13px; }
+.result {
+  background: #f4f7fb;
+  padding: 14px;
+  border-radius: 9px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.dog {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  max-height: 300px;
+  object-fit: cover;
+  margin: 12px auto;
+  border-radius: 12px;
+}
+button {
+  padding: 11px 16px;
+  background: #203b65;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+footer {
+  text-align: center;
+  color: #64748b;
+  padding: 20px;
+  font-size: 13px;
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p>ARDY JOURNAL · WEB PROJECT</p>
+  <h1>Explore the Digital World</h1>
+  <p>Demonstrasi penggunaan tiga API eksternal untuk mengambil data secara langsung.</p>
+</header>
+
+<section class="card">
+  <h2>🌤️ Cuaca Semarang</h2>
+  <p class="source">API 1 — Open-Meteo</p>
+  <div class="result" id="weather">Memuat data cuaca...</div>
+</section>
+
+<section class="card">
+  <h2>📰 Artikel Contoh</h2>
+  <p class="source">API 2 — JSONPlaceholder</p>
+  <div id="posts">Memuat artikel...</div>
+</section>
+
+<section class="card">
+  <h2>🐶 Galeri Anjing</h2>
+  <p class="source">API 3 — Dog CEO</p>
+  <div id="dogs" class="result">Memuat gambar...</div>
+  <button id="refresh">Tampilkan gambar lain</button>
+</section>
+
+<footer>Proyek pembelajaran API eksternal · Ardy Journal</footer>
+</main>
+
+<script>
+async function loadWeather() {
+  const el = document.getElementById("weather");
+  try {
+    const r = await fetch(
+      "https://api.open-meteo.com/v1/forecast?latitude=-7.0051&longitude=110.4381&current=temperature_2m,relative_humidity_2m,wind_speed_10m"
+    );
+    if (!r.ok) throw new Error();
+    const j = await r.json();
+    const d = j.current;
+    el.innerHTML = "<b>Suhu:</b> " + d.temperature_2m + " °C<br>" +
+      "<b>Kelembapan:</b> " + d.relative_humidity_2m + "%<br>" +
+      "<b>Kecepatan angin:</b> " + d.wind_speed_10m + " km/jam";
+  } catch {
+    el.textContent = "Data cuaca gagal dimuat. Periksa koneksi internet.";
+  }
+}
+
+async function loadPosts() {
+  const el = document.getElementById("posts");
+  try {
+    const r = await fetch("https://jsonplaceholder.typicode.com/posts?_limit=3");
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    el.innerHTML = data.map(p =>
+      '<div class="result" style="margin-bottom:10px"><b>' +
+      p.id + ". " + p.title + "</b><p>" + p.body + "</p></div>"
+    ).join("");
+  } catch {
+    el.textContent = "Artikel gagal dimuat. Periksa koneksi internet.";
+  }
+}
+
+async function loadDog() {
+  const el = document.getElementById("dogs");
+  el.textContent = "Memuat gambar...";
+  try {
+    const r = await fetch("https://dog.ceo/api/breeds/image/random");
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    if (d.status !== "success") throw new Error();
+    el.innerHTML = '<img class="dog" src="' + d.message +
+      '" alt="Gambar anjing dari Dog CEO API">';
+  } catch {
+    el.textContent = "Gambar gagal dimuat. Coba lagi.";
+  }
+}
+
+document.getElementById("refresh").addEventListener("click", loadDog);
+loadWeather();
+loadPosts();
+loadDog();
+</script>
+</body>
+</html>
